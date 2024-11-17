@@ -1,0 +1,11 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Run Processing Sketch",
+            "type": "f5anything",
+            "request": "launch",
+            "command": "cmd /c \"C:\\Users\\PC\\Desktop\\Université\\processing-4.0b2\\processing-java.exe\" --sketch=\"${workspaceFolder}\" --run"
+        }
+    ]
+}
