@@ -6,12 +6,12 @@ Press Mouse to add fluid, change int model in line 11 to see different models.
 
 Fluid fluid;
 float kernel_radius = 20; // 20 - speed OK, 8..10 - very slow
-float timestep = 2;
+float timestep = 1;
 int model = 2; // use 1 - 3 for different simulation models, see setup() for definitions
 float stepsPerFrame = 1;
 
 void setup() {
-  size(850, 700);
+  size(300, 300);
   //fullScreen();
   colorMode(HSB);
 
@@ -33,8 +33,8 @@ void setup() {
   if (model == 2) {
     stepsPerFrame = 2;
     timestep = 1;
-    for (float x = width*0.1; x<width*0.3; x+=kernel_radius*0.25) {
-      for (float y = height * 0.2; y<(height * 0.8); y+=kernel_radius*0.25) {
+    for (float x = 0; x<width; x+=kernel_radius*0.25) {
+      for (float y = 0; y<height; y+=kernel_radius*0.25) {
         fluid.particles.add(new Particle(x, y, false));
       }
     }

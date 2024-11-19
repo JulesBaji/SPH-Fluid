@@ -5,7 +5,7 @@
             "name": "Run Processing Sketch",
             "type": "f5anything",
             "request": "launch",
-            "command": "cmd /c \"C:\\Users\\PC\\Desktop\\Université\\processing-4.0b2\\processing-java.exe\" --sketch=\"${workspaceFolder}\" --run"
+            "command": "cmd /c \"C:\\Users\\baji2\\processing-4.3\\processing-java.exe\" --sketch=\"${workspaceFolder}\" --run"
         }
     ]
 }

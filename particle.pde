@@ -10,6 +10,7 @@ class Particle {
   PVector dx;
   boolean rigid;
 
+  float vorticity; // Nouvelle propriété pour stocker la vorticité
 
   Particle(float x, float y, boolean r) {
     pos = new PVector(x, y);
@@ -19,6 +20,8 @@ class Particle {
     rho_near = 0;
     dx = new PVector(0, 0);
     rigid = r;
+
+    this.vorticity = 0; // Initialiser à zéro
   }
 
   void plot() {
@@ -26,7 +29,12 @@ class Particle {
     if (rigid) {
       stroke(0);
     } else {
-      stroke(150 - pressure*2000, 255, 200);
+      stroke(150 - vorticity*2, 255, 200);
+      // stroke(150 - pressure*2000, 255, 200);
+      // float intensity = map(abs(vorticity), 0, 50, 0, 255); // Ajustez maxVorticity
+      // stroke(intensity, 0, 255 - intensity); // Gradient bleu-rouge
+      // fill(intensity, 0, 255 - intensity);
+      // ellipse(pos.x, pos.y, 5, 5); // Dessiner les particules
     }
     point(pos.x, pos.y);
   }

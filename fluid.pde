@@ -25,6 +25,8 @@ class Fluid {
     for (Particle p : particles) {
       // add gravity
       if (!p.rigid) {
+        if(p.pos.x > 0 && p.pos.x < 20 && p.pos.y > height - 10 && p.pos.y < height)
+          p.vel.add(new PVector(1, 0));  
         p.vel.add(g);
       }
     }
@@ -101,6 +103,8 @@ class Fluid {
       }
     } // for (Particle p : particles) {
 
+    computeVorticity();
+
 
     // resolve collisions
     // move back from out of border (could also be done with impulses, but I'm lazy here)
@@ -109,6 +113,10 @@ class Fluid {
       if (p.pos.x > width) p.pos.x = width;
       if (p.pos.y < 0) p.pos.y = 0;
       if (p.pos.y > height) p.pos.y = height;
+
+      if (p.pos.x < h || p.pos.x > width - h || p.pos.y < h || p.pos.y > height - h) {
+        p.vel.mult(0.9); // Réduire légèrement la vitesse
+      }
     }
 
     for (Particle p : particles) {
@@ -121,6 +129,35 @@ class Fluid {
   void plot() {
     for (Particle p : particles) {
       p.plot();
+    }
+  }
+
+  void computeVorticity() {
+    for (Particle p : particles) {
+      float vorticityZ = 0; // La composante z de la vorticité
+
+      for (Particle neighbor : p.neighbors) {
+        if (neighbor != p && !neighbor.rigid) {
+          // Vecteur directionnel entre les particules
+          PVector r_ij = PVector.sub(neighbor.pos, p.pos);
+          float r_ij_mag = r_ij.mag();
+
+          if (r_ij_mag < h && r_ij_mag > 0) {
+            r_ij.normalize(); // Normaliser le vecteur directionnel
+
+            // Différence de vitesse
+            PVector velocityDiff = PVector.sub(neighbor.vel, p.vel);
+
+            // Contribution à la vorticité (seule la composante z du produit vectoriel)
+            float contributionZ = velocityDiff.x * r_ij.y - velocityDiff.y * r_ij.x;
+
+            vorticityZ += contributionZ; // Ajouter à la vorticité totale
+          }
+        }
+      }
+
+      // Stocker la composante z de la vorticité dans la particule
+      p.vorticity = vorticityZ;
     }
   }
 }
