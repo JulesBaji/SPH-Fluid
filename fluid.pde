@@ -25,14 +25,14 @@ class Fluid {
     for (Particle p : particles) {
       // add gravity
       if (!p.rigid) {
-        if(p.pos.x > 0 && p.pos.x < 20 && p.pos.y > height - 10 && p.pos.y < height)
-          p.vel.add(new PVector(1, 0));  
+        if(p.pos.x > 0 && p.pos.x < width && p.pos.y > height - 5 && p.pos.y < height)
+          p.vel.add(new PVector(.1, 0));  
         p.vel.add(g);
       }
     }
 
-    // apply viscosity
-    // not yet implemented
+    computeVorticity();
+    applyVorticityConfinement();
 
     for (Particle p : particles) {
       // save previous pos
@@ -53,7 +53,6 @@ class Fluid {
     for (Particle p : particles) {
       grid.add_particle(p);
     }
-
 
     for (Particle p : particles) {
       p.find_neighbors(grid); // much faster than p.find_neighbors(particles, h);
@@ -102,9 +101,6 @@ class Fluid {
         p.pos.add(p.dx);
       }
     } // for (Particle p : particles) {
-
-    computeVorticity();
-
 
     // resolve collisions
     // move back from out of border (could also be done with impulses, but I'm lazy here)
@@ -158,6 +154,49 @@ class Fluid {
 
       // Stocker la composante z de la vorticité dans la particule
       p.vorticity = vorticityZ;
+    }
+  }
+
+  void applyVorticityConfinement() {
+    // Calculer la force de confinement pour chaque particule
+    for (Particle p : particles) {
+      if (p.rigid) {
+        continue; // Ignorer les particules rigides
+      }
+      PVector eta = new PVector(0, 0); // Gradient de vorticité
+
+      // Calculer le gradient de la vorticité
+      for (Particle neighbor : p.neighbors) {
+        if (neighbor != p) {
+          // Différence de position
+          PVector r_ij = PVector.sub(neighbor.pos, p.pos);
+          float r_ij_mag = r_ij.mag();
+
+          if (r_ij_mag < h && r_ij_mag > 0) {
+            r_ij.normalize();
+            // Différence de vorticité scalaire
+            float vorticityDiff = neighbor.vorticity - p.vorticity;
+            // Ajouter au gradient (pondéré par la distance et normalisé par le noyau SPH)
+            eta.add(PVector.mult(r_ij, vorticityDiff));
+          }
+        }
+      }
+
+      // Normaliser le gradient
+      if (eta.mag() > 0) {
+        eta.normalize();
+      }
+
+      // Calculer la force de confinement
+      // Produit vectoriel : eta (gradient) × vorticité (z en 2D)
+      PVector confinementForce = new PVector(-eta.y * p.vorticity, eta.x * p.vorticity);
+
+      // Facteur d'amplification (epsilon)
+      float epsilon = 0.0001f;
+      confinementForce.mult(epsilon);
+
+      // Ajouter la force de confinement à la vitesse de la particule
+      p.vel.add(confinementForce);
     }
   }
 }

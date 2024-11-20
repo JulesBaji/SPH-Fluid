@@ -8,11 +8,11 @@ Fluid fluid;
 float kernel_radius = 20; // 20 - speed OK, 8..10 - very slow
 float timestep = 1;
 int model = 2; // use 1 - 3 for different simulation models, see setup() for definitions
-float stepsPerFrame = 1;
+float stepsPerFrame = 10;
 
 void setup() {
-  size(300, 300);
-  //fullScreen();
+  size(200, 200);
+  // fullScreen();
   colorMode(HSB);
 
   fluid = new Fluid(timestep, kernel_radius);
@@ -83,6 +83,7 @@ void draw() {
 
 void createBorders() {
   for (float x=0; x < width; x+= kernel_radius * 0.1) {
+    // fluid.particles.add(new Particle(x, 0, true));
     fluid.particles.add(new Particle(x, height, true));
   }
   for (float y=0; y < height; y+= kernel_radius * 0.1) {
