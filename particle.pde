@@ -11,6 +11,9 @@ class Particle {
   boolean rigid;
 
   float vorticity; // Nouvelle propriété pour stocker la vorticité
+  PVector microrotation; // Nouvelle propriété : microrotation (ω)
+  PVector torque;      // Couple appliqué sur la particule (τ)
+  float momentInertia; // Moment d'inertie (Θ)
 
   Particle(float x, float y, boolean r) {
     pos = new PVector(x, y);
@@ -22,6 +25,9 @@ class Particle {
     rigid = r;
 
     this.vorticity = 0; // Initialiser à zéro
+    this.microrotation = new PVector(0, 0); // Initialiser la rotation à zéro
+    this.torque = new PVector(0, 0);
+    this.momentInertia = 2; // Valeur expérimentale pour fluides micropolaires
   }
 
   void plot() {
@@ -29,12 +35,7 @@ class Particle {
     if (rigid) {
       stroke(0);
     } else {
-      stroke(150 - vorticity*2, 255, 200);
-      // stroke(150 - pressure*2000, 255, 200);
-      // float intensity = map(abs(vorticity), 0, 50, 0, 255); // Ajustez maxVorticity
-      // stroke(intensity, 0, 255 - intensity); // Gradient bleu-rouge
-      // fill(intensity, 0, 255 - intensity);
-      // ellipse(pos.x, pos.y, 5, 5); // Dessiner les particules
+      stroke(150 - microrotation.mag()*0.01, 255, 200);
     }
     point(pos.x, pos.y);
   }

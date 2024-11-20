@@ -21,19 +21,28 @@ class Fluid {
   }
 
   void step() {
-
+    // Étape 1 : Appliquer la gravité et autres forces externes
     for (Particle p : particles) {
       // add gravity
       if (!p.rigid) {
+        // lid-driven cavity
         if(p.pos.x > 0 && p.pos.x < width && p.pos.y > height - 5 && p.pos.y < height)
           p.vel.add(new PVector(.1, 0));  
         p.vel.add(g);
       }
     }
 
-    computeVorticity();
-    applyVorticityConfinement();
+    // computeVorticity();
+    // applyVorticityConfinement();
 
+    // Étape 3 : Calculer la microrotation
+    computeMicrorotation();
+
+    // Étape 4 : Coupler la vitesse avec la microrotation
+    coupleVelocityAndMicrorotation();
+    amplifyTurbulence();
+
+    // Étape 2 : Mettre à jour la position en fonction de la vitesse
     for (Particle p : particles) {
       // save previous pos
       p.pos_prev = p.pos.copy();
@@ -115,8 +124,8 @@ class Fluid {
       }
     }
 
+    // compute new velocity
     for (Particle p : particles) {
-      // compute new velocity
       p.vel = PVector.sub(p.pos, p.pos_prev);
       p.vel.div(dt);
     }
@@ -197,6 +206,66 @@ class Fluid {
 
       // Ajouter la force de confinement à la vitesse de la particule
       p.vel.add(confinementForce);
+    }
+  }
+
+  void computeMicrorotation() {
+    for (Particle p : particles) {
+      PVector vorticity = new PVector(0, 0); // Calculer la vorticité locale
+
+      for (Particle neighbor : p.neighbors) {
+        if (neighbor != p) {
+          // Direction et distance entre particules
+          PVector r_ij = PVector.sub(neighbor.pos, p.pos);
+          float r_ij_mag = r_ij.mag();
+
+          if (r_ij_mag < h && r_ij_mag > 0) {
+            r_ij.normalize();
+
+            // Différence de vitesse entre particules
+            PVector velocityDiff = PVector.sub(neighbor.vel, p.vel);
+
+            // Contribution au champ de vorticité
+            vorticity.x += velocityDiff.y * r_ij.x - velocityDiff.x * r_ij.y;
+          }
+        }
+      }
+
+      // Mettre à jour la microrotation (simple transfert pour fluides inviscides)
+      p.torque.set(vorticity); // Stocker comme "torque" temporaire
+      p.microrotation.add(PVector.mult(p.torque, dt / p.momentInertia));
+    }
+  }
+
+  void coupleVelocityAndMicrorotation() {
+    float nu_t = 0.0000005; // Coefficient de transfert entre vitesse et rotation
+    for (Particle p : particles) {
+      if (p.rigid) {
+        continue; // Ignorer les particules rigides
+      }
+      // Transfert rotationnel vers vitesse linéaire
+      PVector rotationalEffect = PVector.mult(p.microrotation, nu_t);
+      p.vel.add(rotationalEffect);
+
+      // Transfert inverse vers microrotation
+      PVector velocityCurl = new PVector(-p.vel.y, p.vel.x).mult(nu_t);
+      p.microrotation.add(velocityCurl);
+    }
+  }
+
+  void amplifyTurbulence() {
+    float amplificationFactor = 1e-5; // Facteur d'amplification
+
+    for (Particle p : particles) {
+      if (!p.rigid) {
+        // Si la microrotation est au-dessus d'un seuil
+        if (p.microrotation.mag() > 1000.0) {
+          // Ajouter une perturbation à la vitesse
+          PVector perturbation = p.microrotation.copy();
+          perturbation.mult(amplificationFactor);
+          p.vel.add(perturbation);
+        }
+      }
     }
   }
 }
