@@ -26,13 +26,14 @@ class Fluid {
       // add gravity
       if (!p.rigid) {
         // lid-driven cavity
-        if(p.pos.x > 0 && p.pos.x < width && p.pos.y > height - 5 && p.pos.y < height)
-          p.vel.add(new PVector(.1, 0));  
+        if(p.pos.x > 0 && p.pos.x < width && p.pos.y > height - 2*h && p.pos.y < height)
+          p.vel.add(new PVector(1.2e-3, 0));  
         p.vel.add(g);
       }
     }
 
     for (Particle p : particles) {
+      if (p.rigid) continue;
       // save previous pos
       p.pos_prev = p.pos.copy();
       // advance to predicted position
@@ -49,13 +50,12 @@ class Fluid {
     // prepare search for neighbors:
     grid.clear_grid();
     for (Particle p : particles) {
+      if (p.rigid) continue;
       grid.add_particle(p);
     }
 
-    computeMicrorotation();
-    coupleVelocityAndMicrorotation();
-
     for (Particle p : particles) {
+      if (p.rigid) continue;
       p.find_neighbors(grid); // much faster than p.find_neighbors(particles, h);
       p.rho = 0;
       p.rho_near = 0;
@@ -104,21 +104,35 @@ class Fluid {
     } // for (Particle p : particles) {
 
     // resolve collisions
-    // move back from out of border (could also be done with impulses, but I'm lazy here)
     for (Particle p : particles) {
-      if (p.pos.x < 0) p.pos.x = 0;
-      if (p.pos.x > width) p.pos.x = width;
-      if (p.pos.y < 0) p.pos.y = 0;
-      if (p.pos.y > height) p.pos.y = height;
+      if (p.rigid) continue;
+      if (p.pos.x < 0) {
+        p.pos.x = 0; 
+        PVector normal = new PVector(1, 0); 
+        applyImpulse(p, normal);
+      } else if (p.pos.x > width) {
+        p.pos.x = width;
+        PVector normal = new PVector(-1, 0); 
+        applyImpulse(p, normal);
+      }
 
-      if (p.pos.x < h || p.pos.x > width - h || p.pos.y < h || p.pos.y > height - h) {
-        p.vel.mult(0.99); // Réduire légèrement la vitesse
+      if (p.pos.y < 0) {
+        p.pos.y = 0;
+        PVector normal = new PVector(0, 1); 
+        applyImpulse(p, normal);
+      } else if (p.pos.y > height) {
+        p.pos.y = height;
+        PVector normal = new PVector(0, -1); 
+        applyImpulse(p, normal);
       }
     }
 
     // compute new velocity
     for (Particle p : particles) {
+      if(p.rigid) continue;
       p.vel = PVector.sub(p.pos, p.pos_prev);
+      computeMicrorotation(p);
+      coupleVelocityAndMicrorotation(p);
       p.vel.div(dt);
     }
   }
@@ -129,47 +143,59 @@ class Fluid {
     }
   }
 
-  void computeMicrorotation() {
-    for (Particle p : particles) {
-      PVector vorticity = new PVector(0, 0); // Calculer la vorticité locale
+  void computeMicrorotation(Particle p) {
+    float vorticity = 0; // Initialiser la vorticité locale pour la particule
 
-      for (Particle neighbor : p.neighbors) {
-        if (neighbor != p) {
-          // Direction et distance entre particules
-          PVector r_ij = PVector.sub(neighbor.pos, p.pos);
-          float r_ij_mag = r_ij.mag();
+    for (Particle neighbor : p.neighbors) {
+      if (neighbor != p && !neighbor.rigid) {
+        // Direction et distance entre particules
+        PVector r_ij = PVector.sub(neighbor.pos, p.pos);
+        float r_ij_mag = r_ij.mag();
 
-          if (r_ij_mag < h && r_ij_mag > 0) {
-            r_ij.normalize();
+        if (r_ij_mag < h && r_ij_mag > 0) { // Voisins dans le rayon d'influence
+          r_ij.normalize(); // Normaliser la direction
 
-            // Différence de vitesse entre particules
-            PVector velocityDiff = PVector.sub(neighbor.vel, p.vel);
+          // Différence de vitesse entre les particules
+          PVector velocityDiff = PVector.sub(neighbor.vel, p.vel);
 
-            // Contribution au champ de vorticité
-            vorticity.x += velocityDiff.y * r_ij.x - velocityDiff.x * r_ij.y;
-          }
+          // Contribution scalaire à la vorticité (produit vectoriel 2D)
+          vorticity += velocityDiff.x * r_ij.y - velocityDiff.y * r_ij.x;
         }
       }
-
-      // Mettre à jour la microrotation (simple transfert pour fluides inviscides)
-      p.torque.set(vorticity); // Stocker comme "torque" temporaire
-      p.microrotation.add(PVector.mult(p.torque, dt / p.momentInertia));
     }
+
+    // Appliquer le torque basé sur la vorticité
+    p.torque = vorticity;
+
+    // Mettre à jour la microrotation (Δω = τ · Δt / Θ)
+    p.microrotation += (p.torque * dt) / p.momentInertia;
+    p.microrotation *= 0.995; // Damping de la microrotation
   }
 
-  void coupleVelocityAndMicrorotation() {
-    float nu_t = 0.0000005; // Coefficient de transfert entre vitesse et rotation
-    for (Particle p : particles) {
-      if (p.rigid) {
-        continue; // Ignorer les particules rigides
-      }
-      // Transfert rotationnel vers vitesse linéaire
-      PVector rotationalEffect = PVector.mult(p.microrotation, nu_t);
-      p.vel.add(rotationalEffect);
+  void coupleVelocityAndMicrorotation(Particle p) {
+    float nu_t = 0.0000001; // Coefficient de transfert entre rotation et vitesse
+    // Transfert microrotation -> vitesse
+    PVector rotationalEffect = new PVector(-p.microrotation * nu_t, p.microrotation * nu_t);
+    p.vel.add(rotationalEffect);
 
-      // Transfert inverse vers microrotation
-      PVector velocityCurl = new PVector(-p.vel.y, p.vel.x).mult(nu_t);
-      p.microrotation.add(velocityCurl);
-    }
+    // Transfert vitesse -> microrotation
+    float velocityCurl = (p.vel.y - p.vel.x) * nu_t; // Approximation simple pour 2D
+    p.microrotation += velocityCurl;
+  }
+
+  void applyImpulse(Particle p, PVector normal) {
+    // Calcul de la vitesse normale (projection de la vitesse sur la normale)
+    float vn = PVector.dot(p.vel, normal);
+
+    // Si la particule s'éloigne déjà de la surface, pas besoin d'impulsion
+    if (vn >= 0) return;
+
+    // Réponse impulsive : inverser et réduire la composante normale de la vitesse
+    float restitution = 0.8; // Coefficient de restitution (élasticité)
+    float impulseMagnitude = -(1 + restitution) * vn;
+
+    // Appliquer l'impulsion
+    PVector impulse = PVector.mult(normal, impulseMagnitude);
+    p.vel.add(impulse);
   }
 }

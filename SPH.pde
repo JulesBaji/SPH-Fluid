@@ -11,7 +11,7 @@ int model = 2; // use 1 - 3 for different simulation models, see setup() for def
 float stepsPerFrame = 10;
 
 void setup() {
-  size(200, 200);
+  size(500, 500);
   // fullScreen();
   colorMode(HSB);
 
@@ -34,7 +34,7 @@ void setup() {
     stepsPerFrame = 2;
     timestep = 1;
     for (float x = 0; x<width; x+=kernel_radius*0.25) {
-      for (float y = 0; y<height; y+=kernel_radius*0.25) {
+      for (float y = height/2; y<height; y+=kernel_radius*0.25) {
         fluid.particles.add(new Particle(x, y, false));
       }
     }
