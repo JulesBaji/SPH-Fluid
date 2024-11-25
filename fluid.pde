@@ -19,100 +19,102 @@ class Fluid {
   }
 
   void step() {
-    // Centre de rotation
     PVector center = new PVector(width * 0.5, height * 0.8); 
-
-    // Mettre à jour l'angle de rotation
     barAngle += barAngularSpeed;
 
-    // Repositionner les particules de la barre
+    // Repositionnement des particules de l'hélice
     for (Particle p : particles) {
-      if (p.rigid && p.isPartOfBar) {
+      if (p.rigid && p.isPartOfHelix) {
         float relativeY = p.pos.y - center.y;
         float relativeX = p.pos.x - center.x;
 
-        // Calculer la position après rotation
         float distance = sqrt(relativeX * relativeX + relativeY * relativeY);
         float angle = atan2(relativeY, relativeX);
 
-        angle += barAngularSpeed; // Appliquer la rotation
+        angle += barAngularSpeed;
         p.pos.x = center.x + cos(angle) * distance;
         p.pos.y = center.y + sin(angle) * distance;
       }
     }
     
-    // Étape 1 : Appliquer la gravité et autres forces externes
+    // Gravité et forces externes
     for (Particle p : particles) {
       if (!p.rigid) {
-        // Lid-driven cavity : Appliquer une vitesse horizontale dans une zone spécifique
-        // if (p.pos.x > 0 && p.pos.x < width/2 && p.pos.y > height - 2 * h && p.pos.y < height) {
-        //   p.vel.add(new PVector(5e-2, 0));
-        // }
-        // if (p.pos.x > width/2 && p.pos.x < width && p.pos.y > height - 2 * h && p.pos.y < height) {
-        //   p.vel.add(new PVector(-5e-2, 0));
-        // }
-        // Appliquer la gravité
+        // model 1
+        if (model == 1) {
+          if (p.pos.x > 0 && p.pos.x < width && p.pos.y > height - 2 * h && p.pos.y < height) {
+            p.vel.add(new PVector(3e-2, 0));
+          }
+        }
+        // model 2
+        if (model == 2) {
+          if (p.pos.x > 0 && p.pos.x < width/2 && p.pos.y > height - 2 * h && p.pos.y < height) {
+            p.vel.add(new PVector(2e-2, 0));
+          }
+          if (p.pos.x > width/2 && p.pos.x < width && p.pos.y > height - 2 * h && p.pos.y < height) {
+            p.vel.add(new PVector(-2e-2, 0));
+          }
+        }
+        // model 3
+        if (model == 3) {
+          if (p.pos.x > 0 && p.pos.x < width && p.pos.y > height - 2 * h && p.pos.y < height) {
+            p.vel.add(new PVector(-2e-2, 0));
+          }
+        }
         p.vel.add(g);
       }
     }
 
-    // Étape 2 : Calcul des positions prédites
+    // Calcul des positions prédites
     for (Particle p : particles) {
       if (p.rigid) continue;
-      p.pos_prev = p.pos.copy(); // Sauvegarder la position précédente
-      p.pos.add(PVector.mult(p.vel, dt)); // Calcul de la position prédite
+      p.pos_prev = p.pos.copy(); 
+      p.pos.add(PVector.mult(p.vel, dt));
     }
 
-    // Étape 3 : Mettre à jour la grille pour les recherches de voisins
+    // Mise à jour de la grille
     grid.clear_grid();
     for (Particle p : particles) {
       grid.add_particle(p);
       p.find_neighbors(grid);
     }
 
-    // Étape 4 : Calcul des densités
-    computeDensity(); // Fonction DFSPH pour calculer la densité locale
+    // DFSPH
+    computeDensity(); 
+    correctDensity();
+    correctDivergence();
 
-    // Étape 5 : Correction de la densité (incompressibilité)
-    correctDensity(); // Fonction DFSPH pour ajuster les positions et garantir ρ ≈ ρ₀
-
-    // Étape 6 : Correction de la divergence
-    // correctDivergence(); // Fonction DFSPH pour ajuster les vitesses et garantir ∇·v = 0
-
-    // Étape 7 : Résolution des collisions par impulsion
+    // Résolution des collisions par impulsion
     for (Particle p : particles) {
       if (p.rigid) continue;
 
       // Collision avec les bordures
       if (p.pos.x < 0) {
         p.pos.x = 0;
-        PVector normal = new PVector(1, 0); // Normale à la bordure gauche
+        PVector normal = new PVector(1, 0); 
         applyImpulse(p, normal);
       } else if (p.pos.x > width) {
         p.pos.x = width;
-        PVector normal = new PVector(-1, 0); // Normale à la bordure droite
+        PVector normal = new PVector(-1, 0);
         applyImpulse(p, normal);
       }
 
       if (p.pos.y < 0) {
         p.pos.y = 0;
-        PVector normal = new PVector(0, 1); // Normale à la bordure inférieure
+        PVector normal = new PVector(0, 1); 
         applyImpulse(p, normal);
       } else if (p.pos.y > height) {
         p.pos.y = height;
-        PVector normal = new PVector(0, -1); // Normale à la bordure supérieure
+        PVector normal = new PVector(0, -1); 
         applyImpulse(p, normal);
       }
     }
 
-    // Étape 8 : Mise à jour des vitesses (post-correction)
+    // Mise à jour des vitesses
     for (Particle p : particles) {
       if (p.rigid) continue;
-      // Calculer la nouvelle vitesse en fonction des positions corrigées
       p.vel = PVector.sub(p.pos, p.pos_prev).div(dt);
-
-      // Couplage avec la microrotation
-      coupleVelocityAndMicrorotation(p);
+      coupleVelocityAndMicrorotation(p); // Microrotations
     }
   }
 
@@ -123,7 +125,7 @@ class Fluid {
   }
 
   void coupleVelocityAndMicrorotation(Particle p) {
-    float vorticity = 0; // Initialiser la vorticité locale pour la particule
+    float vorticity = 0;
 
     for (Particle neighbor : p.neighbors) {
       if (neighbor != p && !neighbor.rigid) {
@@ -132,7 +134,7 @@ class Fluid {
         float r_ij_mag = r_ij.mag();
 
         if (r_ij_mag < h && r_ij_mag > 0) { // Voisins dans le rayon d'influence
-          r_ij.normalize(); // Normaliser la direction
+          r_ij.normalize();
 
           // Différence de vitesse entre les particules
           PVector velocityDiff = PVector.sub(neighbor.vel, p.vel);
@@ -143,16 +145,14 @@ class Fluid {
       }
     }
 
-    // Appliquer le torque basé sur la vorticité
     p.torque = vorticity;
 
-    // Mettre à jour la microrotation (Δω = τ · Δt / Θ)
+    // Microrotation (Δω = τ · Δt / Θ)
     p.microrotation += (p.torque * dt) / p.momentInertia;
-    p.microrotation *= 0.98; // Damping de la microrotation
+    p.microrotation *= 0.985; // Damping de la microrotation
 
-    // Mise à jour de la microrotation en tenant compte du transfert avec la vorticité
     // Transfert vitesse -> microrotation
-    float transferCoefficient = 0.0000001; // Contrôle la force du couplage
+    float transferCoefficient = 1e-7; // Contrôle la force du couplage
     p.microrotation += (vorticity * transferCoefficient) * dt;
 
     // Transfert microrotation -> vitesse
@@ -161,17 +161,15 @@ class Fluid {
   }
 
   void applyImpulse(Particle p, PVector normal) {
-    // Calcul de la vitesse normale (projection de la vitesse sur la normale)
+    // Calcul de la vitesse normale
     float vn = PVector.dot(p.vel, normal);
 
     // Si la particule s'éloigne déjà de la surface, pas besoin d'impulsion
     if (vn >= 0) return;
 
-    // Réponse impulsive : inverser et réduire la composante normale de la vitesse
+    // Réponse impulsive
     float restitution = 0.8; // Coefficient de restitution (élasticité)
     float impulseMagnitude = -(1 + restitution) * vn;
-
-    // Appliquer l'impulsion
     PVector impulse = PVector.mult(normal, impulseMagnitude);
     p.vel.add(impulse);
   }
@@ -179,12 +177,11 @@ class Fluid {
   void computeDensity() {
     for (Particle p : particles) {
       if (p.rigid) continue;
-      p.rho = 0; // Réinitialiser la densité
+      p.rho = 0;
       for (Particle neighbor : p.neighbors) {
         float r_ij_mag = PVector.dist(p.pos, neighbor.pos);
         if (r_ij_mag < h) {
-          // Ajout de la contribution au noyau SPH
-          float test = 1e5; 
+          // Calcul de la densité pondérée par le noyau SPH
           p.rho += neighbor.mass * kernel(r_ij_mag, h);
         }
       }
@@ -203,12 +200,9 @@ class Fluid {
         if (r_ij_mag < h) {
           // Calcul de la correction pondérée par le gradient du noyau
           PVector grad = gradientKernel(p.pos, neighbor.pos, h);
-          // Multiplier gradient ?
           correction.add(PVector.mult(grad, neighbor.mass * constraint));
         }
       }
-      
-      // Appliquer la correction inverse
       p.pos.sub(PVector.mult(correction, 1e7));
     }
   }
@@ -230,18 +224,16 @@ class Fluid {
       }
       // divergence /= p.rho;
 
-      // Appliquer la correction de divergence
+      // Correction de la divergence
       PVector correction = new PVector(0, 0);
       for (Particle neighbor : p.neighbors) {
         float r_ij_mag = PVector.dist(p.pos, neighbor.pos);
         if (r_ij_mag < h) {
           PVector grad = gradientKernel(p.pos, neighbor.pos, h);
-          // grad.mult(1e15);
           correction.add(PVector.mult(grad, neighbor.mass * divergence));
         }
       }
-      // p.vel.sub(correction);
-      p.vel.sub(PVector.mult(correction, 1));
+      p.vel.sub(PVector.mult(correction, 1e7));
     }
   }
 

@@ -7,79 +7,99 @@ Press Mouse to add fluid, change int model in line 11 to see different models.
 Fluid fluid;
 float kernel_radius = 20; // rayon d'influence des particules
 float timestep = 1;
-int model = 1; // 1 - dam break, 2 - tube to fill
+int model = 2; // 1: dam break + lid-driven cavity, 2: obstacles, 3: hélice
 float stepsPerFrame = 10;
 
-float barAngle = 0; // Angle initial de la barre
-float barAngularSpeed = 0.04; // Vitesse angulaire (rad/frame)
-float barRadius = width * 0.8; // Longueur de la demi-barre
+float barAngle = 0; // Angle initial de l'hélice
+float barAngularSpeed = 0.03; // Vitesse angulaire (rad/frame)
+float barRadius = width * 0.8; // Longueur de l'hélice
 
 void setup() {
-  size(500, 500);
-  // fullScreen();
+  size(350, 350);
   colorMode(HSB);
 
   fluid = new Fluid(timestep, kernel_radius);
 
-  // model 1: dam break:
+  // model 1 : dam break + lid-driven cavity
   if (model == 1) {
     stepsPerFrame = 1;
     timestep = 1;
     for (float x = 0; x<width; x+=kernel_radius*0.25) {
       for (float y = height/2; y<height; y+=kernel_radius*0.25) {
         Particle p = new Particle(x, y, false);
-        p.vel = new PVector(random(-1, 1), random(-1, 1));
+        p.vel = new PVector(random(-1, 1), random(-1, 1)); // Vitesse initiale aléatoire
+        fluid.particles.add(p);
+      }
+    }
+    createBorders();
+  }
+
+  // model 2 : obstacles et fluides opposés
+  if (model == 2) { 
+    stepsPerFrame = 1;
+    timestep = 1;
+
+    // Fluide gauche
+    for (float x = 0; x < width*0.3; x += kernel_radius * 0.25) {
+      for (float y = height * 0; y < height; y += kernel_radius * 0.25) {
+        Particle p = new Particle(x, y, false);
+        p.vel = new PVector(1, 0); // Vitesse initiale
+        fluid.particles.add(p);
+      }
+    }
+
+    // Obstacles
+    createBorders();
+    for (float y = height * 0.70; y < height * 0.80; y += kernel_radius * 0.1) {
+      fluid.particles.add(new Particle(width * 0.5, y, true)); // Obstacle central vertical haut
+    }
+    for (float y = height * 0.85; y < height * 0.95; y += kernel_radius * 0.1) {
+      fluid.particles.add(new Particle(width * 0.5, y, true)); // Obstacle central vertical bas
+    }
+    for (float x = width * 0.1; x < width * 0.2; x += kernel_radius * 0.1) {
+      fluid.particles.add(new Particle(x, height * 0.85, true)); // Obstacle gauche horizontal
+    }
+    for (float x = width * 0.8; x < width * 0.9; x += kernel_radius * 0.1) {
+      fluid.particles.add(new Particle(x, height * 0.85, true)); // Obstacle droit horizontal
+    }
+
+    // Fluide droit opposé
+    for (float x = width * 0.7; x < width; x += kernel_radius * 0.25) {
+      for (float y = height * 0.5; y < height; y += kernel_radius * 0.25) {
+        Particle p = new Particle(x, y, false);
+        p.vel = new PVector(-1, 0); // Vitesse initiale
+        fluid.particles.add(p);
+      }
+    }
+  }
+
+  // model 3 : hélice
+  if (model == 3) {
+    stepsPerFrame = 1;
+    timestep = 1;
+    for (float x = 0; x<width; x+=kernel_radius*0.25) {
+      for (float y = height/2; y<height; y+=kernel_radius*0.25) {
+        Particle p = new Particle(x, y, false);
+        p.vel = new PVector(random(-1, 1), random(-1, 1)); // Vitesse initiale aléatoire
         fluid.particles.add(p);
       }
     }
     createBorders();
 
-    // Initialisation de la barre rigide
+    // Initialisation de l'hélice (2 lignes de particules)
     for (float y = -barRadius; y <= barRadius; y += kernel_radius * 0.1) {
-      float x = width * 0.5; // Position initiale au centre
-      float posY = height * 0.8 + y; // Position le long de la barre
+      float x = width * 0.5;
+      float posY = height * 0.8 + y;
       Particle barParticle = new Particle(x, posY, true);
       barParticle.isPartOfBar = true;
       fluid.particles.add(barParticle);
     }
     for (float x = -barRadius; x <= barRadius; x += kernel_radius * 0.1) {
-      float posX = width * 0.5 + x; // Position initiale au centre
-      float y = height * 0.8; // Position le long de la barre
+      float posX = width * 0.5 + x;
+      float y = height * 0.8;
       Particle barParticle = new Particle(posX, y, true);
       barParticle.isPartOfBar = true;
       fluid.particles.add(barParticle);
-    }
-  }
-
-  if (model == 2) { // Modèle pour visualiser les tourbillons
-    stepsPerFrame = 1;
-    timestep = 1;
-
-    // Initialisation du fluide : moitié gauche du canvas
-    for (float x = 0; x < width*0.3; x += kernel_radius * 0.25) {
-      for (float y = height * 0; y < height; y += kernel_radius * 0.25) {
-        Particle p = new Particle(x, y, false);
-        p.vel = new PVector(1, 0); // Ajouter un mouvement initial horizontal
-        fluid.particles.add(p);
-      }
-    }
-
-    // Obstacles rigides pour provoquer des perturbations
-    createBorders();
-    for (float y = height * 0.9; y < height * 0.98; y += kernel_radius * 0.1) {
-      fluid.particles.add(new Particle(width * 0.5, y, true)); // Obstacle central vertical
-    }
-    for (float y = height * 0.75; y < height * 0.85; y += kernel_radius * 0.1) {
-      fluid.particles.add(new Particle(width * 0.5, y, true)); // Obstacle central vertical
-    }
-
-    // Flux opposé pour créer des cisaillements
-    for (float x = width * 0.7; x < width; x += kernel_radius * 0.25) {
-      for (float y = height * 0.5; y < height; y += kernel_radius * 0.25) {
-        Particle p = new Particle(x, y, false);
-        p.vel = new PVector(-1, 0); // Mouvement initial horizontal opposé
-        fluid.particles.add(p);
-      }
     }
   }
 
