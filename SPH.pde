@@ -31,7 +31,7 @@ void setup() {
 
   // model 2: dam break:
   if (model == 2) {
-    stepsPerFrame = 2;
+    stepsPerFrame = 1;
     timestep = 1;
     for (float x = 0; x<width; x+=kernel_radius*0.25) {
       for (float y = height/2; y<height; y+=kernel_radius*0.25) {

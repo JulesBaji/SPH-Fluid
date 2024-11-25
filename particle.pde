@@ -27,7 +27,7 @@ class Particle {
     this.microrotation = 0; // Microrotation initiale
     this.torque = 0;        // Torque initial
     this.momentInertia = 1; // Valeur par défaut = 2
-    this.mass = 1.5e4;          // Masse par défaut = 1
+    this.mass = 1;          // Masse par défaut = 1
   }
 
   void plot() {

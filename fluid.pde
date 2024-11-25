@@ -5,15 +5,17 @@ class Fluid {
   float h; // kernel radius for each particle
   float rho_0;
   Grid grid;
+  float test;
 
   Fluid(float dt, float h) {
     particles = new ArrayList<Particle>();
-    g = new PVector(0, 0.01);
+    g = new PVector(0, 0.05);
     g.mult(dt);
     this.dt = dt;
     this.h = h;
-    rho_0 = 30;
+    rho_0 = 2e-3;
     grid = new Grid(width, height, h);
+    test = 0;
   }
 
   void step() {
@@ -48,8 +50,9 @@ class Fluid {
     // Étape 5 : Correction de la densité (incompressibilité)
     correctDensity(); // Fonction DFSPH pour ajuster les positions et garantir ρ ≈ ρ₀
 
+
     // Étape 6 : Correction de la divergence
-    correctDivergence(); // Fonction DFSPH pour ajuster les vitesses et garantir ∇·v = 0
+    // correctDivergence(); // Fonction DFSPH pour ajuster les vitesses et garantir ∇·v = 0
 
     // Étape 7 : Résolution des collisions par impulsion
     for (Particle p : particles) {
@@ -150,7 +153,7 @@ class Fluid {
 
   void computeDensity() {
     for (Particle p : particles) {
-      // if (p.rigid) continue;
+      if (p.rigid) continue;
       p.find_neighbors(grid);
       p.rho = 0; // Réinitialiser la densité
       for (Particle neighbor : p.neighbors) {
@@ -169,22 +172,23 @@ class Fluid {
     for (Particle p : particles) {
       if (p.rigid) continue;
       p.find_neighbors(grid);
-      // println(p.rho + " + " + p.neighbors.size());
       float constraint = (p.rho - rho_0) / rho_0; // Écart de densité relatif
 
       // Correction de position
       PVector correction = new PVector(0, 0);
       for (Particle neighbor : p.neighbors) {
+        if (neighbor.rigid) continue;
         float r_ij_mag = PVector.dist(p.pos, neighbor.pos);
         if (r_ij_mag < h) {
           // Calcul de la correction pondérée par le gradient du noyau
           PVector grad = gradientKernel(p.pos, neighbor.pos, h);
+          // Multiplier gradient ?
           correction.add(PVector.mult(grad, neighbor.mass * constraint));
         }
       }
-
+      
       // Appliquer la correction inverse
-      p.pos.sub(PVector.mult(correction, 100));
+      p.pos.sub(PVector.mult(correction, 1e7));
     }
   }
 
@@ -229,7 +233,8 @@ class Fluid {
     }
     return 0;
   }
-
+  
+  // Cubic Spline Kernel
   PVector gradientKernel(PVector pos_i, PVector pos_j, float h) {
     PVector r = PVector.sub(pos_i, pos_j);
     float r_mag = r.mag();
