@@ -9,6 +9,7 @@ class Particle {
   float pressure_near;
   PVector dx;
   boolean rigid;
+  float mass;          // Masse de la particule
 
   float microrotation; // Microrotation scalaire (ω)
   float torque;        // Couple appliqué (τ)
@@ -26,6 +27,7 @@ class Particle {
     this.microrotation = 0; // Microrotation initiale
     this.torque = 0;        // Torque initial
     this.momentInertia = 1; // Valeur par défaut = 2
+    this.mass = 1.5e4;          // Masse par défaut = 1
   }
 
   void plot() {
@@ -34,7 +36,6 @@ class Particle {
       stroke(0);
     } else {
       stroke(150 - microrotation/100, 255, 200);
-      // stroke(150 - pressure*2000, 255, 200);
     }
     point(pos.x, pos.y);
   }

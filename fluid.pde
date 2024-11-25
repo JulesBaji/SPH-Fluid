@@ -3,8 +3,6 @@ class Fluid {
   PVector g;
   float dt;
   float h; // kernel radius for each particle
-  float k;
-  float k_near;
   float rho_0;
   Grid grid;
 
@@ -14,9 +12,7 @@ class Fluid {
     g.mult(dt);
     this.dt = dt;
     this.h = h;
-    k = 0.008;
-    k_near = 0.01;
-    rho_0 = 10;
+    rho_0 = 30;
     grid = new Grid(width, height, h);
   }
 
@@ -26,7 +22,7 @@ class Fluid {
       if (!p.rigid) {
         // Lid-driven cavity : Appliquer une vitesse horizontale dans une zone spécifique
         if (p.pos.x > 0 && p.pos.x < width && p.pos.y > height - 2 * h && p.pos.y < height) {
-          p.vel.add(new PVector(1.2e-3, 0));
+          // p.vel.add(new PVector(0.5e-2, 0));
         }
         // Appliquer la gravité
         p.vel.add(g);
@@ -154,31 +150,27 @@ class Fluid {
 
   void computeDensity() {
     for (Particle p : particles) {
+      // if (p.rigid) continue;
+      p.find_neighbors(grid);
       p.rho = 0; // Réinitialiser la densité
       for (Particle neighbor : p.neighbors) {
         if (neighbor.rigid) continue;
         float r_ij_mag = PVector.dist(p.pos, neighbor.pos);
         if (r_ij_mag < h) {
           // Ajout de la contribution au noyau SPH
+          float test = 1e5; 
           p.rho += neighbor.mass * kernel(r_ij_mag, h);
         }
       }
     }
   }
 
-  // Cubic Spline Kernel
-  float kernel(float r, float h) {
-    float q = r / h;
-    if (q >= 0 && q <= 1) {
-      return (315.0f / (64.0f * PI * pow(h, 3))) * pow((1 - q * q), 3);
-    }
-    return 0;
-  }
-
   void correctDensity() {
-    float rho0 = 1000.0f; // Densité cible
     for (Particle p : particles) {
-      float constraint = (p.rho - rho0) / rho0; // Écart de densité relatif
+      if (p.rigid) continue;
+      p.find_neighbors(grid);
+      // println(p.rho + " + " + p.neighbors.size());
+      float constraint = (p.rho - rho_0) / rho_0; // Écart de densité relatif
 
       // Correction de position
       PVector correction = new PVector(0, 0);
@@ -192,12 +184,14 @@ class Fluid {
       }
 
       // Appliquer la correction inverse
-      p.pos.sub(correction);
+      p.pos.sub(PVector.mult(correction, 100));
     }
   }
 
   void correctDivergence() {
     for (Particle p : particles) {
+      if (p.rigid) continue;
+      p.find_neighbors(grid);
       float divergence = 0;
 
       // Calcul de la divergence de vitesse
@@ -207,8 +201,10 @@ class Fluid {
           PVector velDiff = PVector.sub(p.vel, neighbor.vel);
           PVector grad = gradientKernel(p.pos, neighbor.pos, h);
           divergence += neighbor.mass * PVector.dot(velDiff, grad);
+          // divergence += PVector.dot(velDiff, grad);
         }
       }
+      // divergence /= p.rho;
 
       // Appliquer la correction de divergence
       PVector correction = new PVector(0, 0);
@@ -216,11 +212,22 @@ class Fluid {
         float r_ij_mag = PVector.dist(p.pos, neighbor.pos);
         if (r_ij_mag < h) {
           PVector grad = gradientKernel(p.pos, neighbor.pos, h);
+          // grad.mult(1e15);
           correction.add(PVector.mult(grad, neighbor.mass * divergence));
         }
       }
-      p.vel.sub(correction);
+      // p.vel.sub(correction);
+      p.vel.sub(PVector.mult(correction, 1));
     }
+  }
+
+  // Cubic Spline Kernel
+  float kernel(float r, float h) {
+    float q = r / h;
+    if (q >= 0 && q <= 1) {
+      return (315.0f / (64.0f * PI * pow(h, 3))) * pow((1 - q * q), 3);
+    }
+    return 0;
   }
 
   PVector gradientKernel(PVector pos_i, PVector pos_j, float h) {

@@ -11,7 +11,7 @@ int model = 2; // use 1 - 3 for different simulation models, see setup() for def
 float stepsPerFrame = 10;
 
 void setup() {
-  size(500, 500);
+  size(300, 300);
   // fullScreen();
   colorMode(HSB);
 
