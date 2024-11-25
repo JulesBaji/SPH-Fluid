@@ -5,32 +5,20 @@ Press Mouse to add fluid, change int model in line 11 to see different models.
 */
 
 Fluid fluid;
-float kernel_radius = 20; // 20 - speed OK, 8..10 - very slow
+float kernel_radius = 20; // rayon d'influence des particules
 float timestep = 1;
-int model = 2; // use 1 - 3 for different simulation models, see setup() for definitions
+int model = 2; // 1 - dam break, 2 - tube to fill
 float stepsPerFrame = 10;
 
 void setup() {
-  size(300, 300);
+  size(500, 500);
   // fullScreen();
   colorMode(HSB);
 
   fluid = new Fluid(timestep, kernel_radius);
 
-  // model 1: drop in zero gravity:
+  // model 1: dam break:
   if (model == 1) {
-    stepsPerFrame = 20;
-    timestep = 2;
-    fluid.g = new PVector(0, 0); // deactivate gravity for debugging.
-    for (float x = width * 0.4; x<(width * 0.6); x+=kernel_radius*0.25) {
-      for (float y = height * 0.2; y<(height * 0.8); y+=kernel_radius*0.25) {
-        fluid.particles.add(new Particle(x, y, false));
-      }
-    }
-  }
-
-  // model 2: dam break:
-  if (model == 2) {
     stepsPerFrame = 1;
     timestep = 1;
     for (float x = 0; x<width; x+=kernel_radius*0.25) {
@@ -41,22 +29,51 @@ void setup() {
     createBorders();
   }
 
-  // model 3: tube to fill:
-  if (model == 3) {
+  if (model == 2) { // Modèle pour visualiser les tourbillons
     stepsPerFrame = 1;
     timestep = 1;
-    for (float x = width * 0.25; x<width*0.45; x+=kernel_radius*0.25) {
-      for (float y = height * 0.5; y<(height * 0.9); y+=kernel_radius*0.25) {
-        fluid.particles.add(new Particle(x, y, false));
+
+    // Initialisation du fluide : moitié gauche du canvas
+    for (float x = 0; x < width*0.3; x += kernel_radius * 0.25) {
+      for (float y = height * 0; y < height; y += kernel_radius * 0.25) {
+        Particle p = new Particle(x, y, false);
+        p.vel = new PVector(1, 0); // Ajouter un mouvement initial horizontal
+        fluid.particles.add(p);
       }
     }
     createBorders();
-    for (float y = height/2; y < height; y+=kernel_radius*0.1) {
-      fluid.particles.add(new Particle(width*0.2, y, true));
-      fluid.particles.add(new Particle(width*0.2 + kernel_radius * 0.1, y, true));
-      fluid.particles.add(new Particle(width*0.5, y, true));
-      fluid.particles.add(new Particle(width*0.5 + kernel_radius * 0.1, y, true));
+  }
+
+  if (model == 3) { // Modèle pour visualiser les tourbillons
+    stepsPerFrame = 1;
+    timestep = 1;
+
+    // Initialisation du fluide : moitié gauche du canvas
+    for (float x = 0; x < width*0.3; x += kernel_radius * 0.25) {
+      for (float y = height * 0; y < height; y += kernel_radius * 0.25) {
+        Particle p = new Particle(x, y, false);
+        p.vel = new PVector(1, 0); // Ajouter un mouvement initial horizontal
+        fluid.particles.add(p);
+      }
     }
+
+    // Obstacles rigides pour provoquer des perturbations
+    createBorders();
+    // for (float y = height * 0.9; y < height * 0.98; y += kernel_radius * 0.1) {
+    //   fluid.particles.add(new Particle(width * 0.5, y, true)); // Obstacle central vertical
+    // }
+    // for (float y = height * 0.5; y < height * 0.85; y += kernel_radius * 0.1) {
+    //   fluid.particles.add(new Particle(width * 0.5, y, true)); // Obstacle central vertical
+    // }
+
+    // Flux opposé pour créer des cisaillements
+    // for (float x = width * 0.7; x < width; x += kernel_radius * 0.25) {
+    //   for (float y = height * 0.5; y < height; y += kernel_radius * 0.25) {
+    //     Particle p = new Particle(x, y, false);
+    //     p.vel = new PVector(-1, 0); // Mouvement initial horizontal opposé
+    //     fluid.particles.add(p);
+    //   }
+    // }
   }
 
   print("Particles: ");
@@ -72,18 +89,15 @@ void draw() {
     }
   }
 
-
   for (int i=0; i<stepsPerFrame; i++) {
     fluid.step();
   }
 
   fluid.plot();
-  //saveFrame("b1-######.png");
 }
 
 void createBorders() {
   for (float x=0; x < width; x+= kernel_radius * 0.1) {
-    // fluid.particles.add(new Particle(x, 0, true));
     fluid.particles.add(new Particle(x, height, true));
   }
   for (float y=0; y < height; y+= kernel_radius * 0.1) {

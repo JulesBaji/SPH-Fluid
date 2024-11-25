@@ -3,10 +3,7 @@ class Particle {
   PVector vel;
   PVector pos_prev;
   ArrayList<Particle> neighbors;
-  float rho;
-  float rho_near;
-  float pressure;
-  float pressure_near;
+  float rho;          // Densité de la particule
   PVector dx;
   boolean rigid;
   float mass;          // Masse de la particule
@@ -20,14 +17,13 @@ class Particle {
     vel = new PVector();
     neighbors = new ArrayList<Particle>();
     rho = 0;
-    rho_near = 0;
     dx = new PVector(0, 0);
     rigid = r;
 
-    this.microrotation = 0; // Microrotation initiale
-    this.torque = 0;        // Torque initial
-    this.momentInertia = 1; // Valeur par défaut = 2
-    this.mass = 1;          // Masse par défaut = 1
+    this.microrotation = 0; 
+    this.torque = 0;        
+    this.momentInertia = 1; 
+    this.mass = 1;          
   }
 
   void plot() {
@@ -35,21 +31,11 @@ class Particle {
     if (rigid) {
       stroke(0);
     } else {
-      stroke(150 - microrotation/100, 255, 200);
+      stroke(150 - microrotation/100, 255, 200); // Coloration en fonction de la microrotation
+      // stroke(150 - vel.mag()*10, 255, 200); // Coloration en fonction de la vitesse
+      // stroke(150 - rho*1e4, 255, 200); // Coloration en fonction de la densité
     }
     point(pos.x, pos.y);
-  }
-
-  void find_neighbors(ArrayList<Particle> particles, float h) {
-    // legacy detection by checking the whole particle Arraylist, works without Grid / Field classes
-    // but is SLOW for large particle numbers. Currently not used.
-    neighbors.clear();
-    for (int j=0; j<particles.size(); j++) {
-      Particle p2 = particles.get(j);
-      if ( (abs(pos.x - p2.pos.x)<h) && (abs(pos.y - p2.pos.y)<h) ) {
-        neighbors.add(p2);
-      }
-    }
   }
 
   void find_neighbors(Grid g) {

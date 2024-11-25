@@ -9,7 +9,7 @@ class Fluid {
 
   Fluid(float dt, float h) {
     particles = new ArrayList<Particle>();
-    g = new PVector(0, 0.05);
+    g = new PVector(0, 0.07);
     g.mult(dt);
     this.dt = dt;
     this.h = h;
@@ -23,8 +23,11 @@ class Fluid {
     for (Particle p : particles) {
       if (!p.rigid) {
         // Lid-driven cavity : Appliquer une vitesse horizontale dans une zone spécifique
-        if (p.pos.x > 0 && p.pos.x < width && p.pos.y > height - 2 * h && p.pos.y < height) {
-          // p.vel.add(new PVector(0.5e-2, 0));
+        if (p.pos.x > 0 && p.pos.x < width/2 && p.pos.y > height - 2 * h && p.pos.y < height) {
+          p.vel.add(new PVector(2e-2, 0));
+        }
+        if (p.pos.x > width/2 && p.pos.x < width && p.pos.y > height - 2 * h && p.pos.y < height) {
+          p.vel.add(new PVector(-2e-2, 0));
         }
         // Appliquer la gravité
         p.vel.add(g);
@@ -41,7 +44,8 @@ class Fluid {
     // Étape 3 : Mettre à jour la grille pour les recherches de voisins
     grid.clear_grid();
     for (Particle p : particles) {
-      if (!p.rigid) grid.add_particle(p);
+      grid.add_particle(p);
+      p.find_neighbors(grid);
     }
 
     // Étape 4 : Calcul des densités
@@ -49,7 +53,6 @@ class Fluid {
 
     // Étape 5 : Correction de la densité (incompressibilité)
     correctDensity(); // Fonction DFSPH pour ajuster les positions et garantir ρ ≈ ρ₀
-
 
     // Étape 6 : Correction de la divergence
     // correctDivergence(); // Fonction DFSPH pour ajuster les vitesses et garantir ∇·v = 0
@@ -123,7 +126,7 @@ class Fluid {
 
     // Mettre à jour la microrotation (Δω = τ · Δt / Θ)
     p.microrotation += (p.torque * dt) / p.momentInertia;
-    p.microrotation *= 0.995; // Damping de la microrotation
+    p.microrotation *= 0.98; // Damping de la microrotation
 
     // Mise à jour de la microrotation en tenant compte du transfert avec la vorticité
     // Transfert vitesse -> microrotation
@@ -154,10 +157,8 @@ class Fluid {
   void computeDensity() {
     for (Particle p : particles) {
       if (p.rigid) continue;
-      p.find_neighbors(grid);
       p.rho = 0; // Réinitialiser la densité
       for (Particle neighbor : p.neighbors) {
-        if (neighbor.rigid) continue;
         float r_ij_mag = PVector.dist(p.pos, neighbor.pos);
         if (r_ij_mag < h) {
           // Ajout de la contribution au noyau SPH
@@ -171,13 +172,11 @@ class Fluid {
   void correctDensity() {
     for (Particle p : particles) {
       if (p.rigid) continue;
-      p.find_neighbors(grid);
       float constraint = (p.rho - rho_0) / rho_0; // Écart de densité relatif
 
       // Correction de position
       PVector correction = new PVector(0, 0);
       for (Particle neighbor : p.neighbors) {
-        if (neighbor.rigid) continue;
         float r_ij_mag = PVector.dist(p.pos, neighbor.pos);
         if (r_ij_mag < h) {
           // Calcul de la correction pondérée par le gradient du noyau
@@ -195,7 +194,6 @@ class Fluid {
   void correctDivergence() {
     for (Particle p : particles) {
       if (p.rigid) continue;
-      p.find_neighbors(grid);
       float divergence = 0;
 
       // Calcul de la divergence de vitesse
