@@ -19,16 +19,38 @@ class Fluid {
   }
 
   void step() {
+    // Centre de rotation
+    PVector center = new PVector(width * 0.5, height * 0.8); 
+
+    // Mettre à jour l'angle de rotation
+    barAngle += barAngularSpeed;
+
+    // Repositionner les particules de la barre
+    for (Particle p : particles) {
+      if (p.rigid && p.isPartOfBar) {
+        float relativeY = p.pos.y - center.y;
+        float relativeX = p.pos.x - center.x;
+
+        // Calculer la position après rotation
+        float distance = sqrt(relativeX * relativeX + relativeY * relativeY);
+        float angle = atan2(relativeY, relativeX);
+
+        angle += barAngularSpeed; // Appliquer la rotation
+        p.pos.x = center.x + cos(angle) * distance;
+        p.pos.y = center.y + sin(angle) * distance;
+      }
+    }
+    
     // Étape 1 : Appliquer la gravité et autres forces externes
     for (Particle p : particles) {
       if (!p.rigid) {
         // Lid-driven cavity : Appliquer une vitesse horizontale dans une zone spécifique
-        if (p.pos.x > 0 && p.pos.x < width/2 && p.pos.y > height - 2 * h && p.pos.y < height) {
-          p.vel.add(new PVector(2e-2, 0));
-        }
-        if (p.pos.x > width/2 && p.pos.x < width && p.pos.y > height - 2 * h && p.pos.y < height) {
-          p.vel.add(new PVector(-2e-2, 0));
-        }
+        // if (p.pos.x > 0 && p.pos.x < width/2 && p.pos.y > height - 2 * h && p.pos.y < height) {
+        //   p.vel.add(new PVector(5e-2, 0));
+        // }
+        // if (p.pos.x > width/2 && p.pos.x < width && p.pos.y > height - 2 * h && p.pos.y < height) {
+        //   p.vel.add(new PVector(-5e-2, 0));
+        // }
         // Appliquer la gravité
         p.vel.add(g);
       }

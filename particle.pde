@@ -12,6 +12,8 @@ class Particle {
   float torque;        // Couple appliqué (τ)
   float momentInertia; // Moment d'inertie (Θ)
 
+  boolean isPartOfBar; // Indicateur pour la barre rigide
+
   Particle(float x, float y, boolean r) {
     pos = new PVector(x, y);
     vel = new PVector();
@@ -23,7 +25,8 @@ class Particle {
     this.microrotation = 0; 
     this.torque = 0;        
     this.momentInertia = 1; 
-    this.mass = 1;          
+    this.mass = 1;      
+    this.isPartOfBar = false;    
   }
 
   void plot() {
