@@ -91,14 +91,14 @@ void setup() {
       float x = width * 0.5;
       float posY = height * 0.8 + y;
       Particle barParticle = new Particle(x, posY, true);
-      barParticle.isPartOfBar = true;
+      barParticle.isPartOfHelix = true;
       fluid.particles.add(barParticle);
     }
     for (float x = -barRadius; x <= barRadius; x += kernel_radius * 0.1) {
       float posX = width * 0.5 + x;
       float y = height * 0.8;
       Particle barParticle = new Particle(posX, y, true);
-      barParticle.isPartOfBar = true;
+      barParticle.isPartOfHelix = true;
       fluid.particles.add(barParticle);
     }
   }

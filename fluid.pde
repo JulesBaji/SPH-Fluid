@@ -116,6 +116,7 @@ class Fluid {
       p.vel = PVector.sub(p.pos, p.pos_prev).div(dt);
       coupleVelocityAndMicrorotation(p); // Microrotations
     }
+    XSPH();
   }
 
   void plot() {
@@ -149,7 +150,7 @@ class Fluid {
 
     // Microrotation (Δω = τ · Δt / Θ)
     p.microrotation += (p.torque * dt) / p.momentInertia;
-    p.microrotation *= 0.985; // Damping de la microrotation
+    p.microrotation *= 0.99; // Damping de la microrotation
 
     // Transfert vitesse -> microrotation
     float transferCoefficient = 1e-7; // Contrôle la force du couplage
@@ -256,5 +257,27 @@ class Fluid {
       return r.normalize().mult(factor);
     }
     return new PVector(0, 0);
+  }
+
+  void XSPH() {
+    float epsilon = 1e-2;
+
+    for (Particle p : particles) {
+      if (p.rigid) continue;
+
+      PVector xsphCorrection = new PVector(0, 0);
+
+      for (Particle neighbor : p.neighbors) {
+        if (neighbor != p && neighbor.rho > 0) {
+          float r_ij = PVector.dist(p.pos, neighbor.pos);
+          if (r_ij < h) {
+            PVector velocityDiff = PVector.sub(neighbor.vel, p.vel);
+            float kernelValue = kernel(r_ij, h); // Noyau SPH
+            xsphCorrection.add(PVector.mult(velocityDiff, kernelValue * neighbor.mass / neighbor.rho));
+          }
+        }
+      }
+      p.vel.add(PVector.mult(xsphCorrection, epsilon));
+    }
   }
 }
