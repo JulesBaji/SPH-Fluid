@@ -7,7 +7,7 @@ Press Mouse to add fluid, change int model in line 11 to see different models.
 Fluid fluid;
 float kernel_radius = 20; // rayon d'influence des particules
 float timestep = 1;
-int model = 2; // 1: dam break + lid-driven cavity, 2: obstacles, 3: hélice
+int model = 1; // 1: dam break + lid-driven cavity, 2: obstacles, 3: hélice
 float stepsPerFrame = 10;
 
 float barAngle = 0; // Angle initial de l'hélice
@@ -108,7 +108,7 @@ void setup() {
 }
 
 void draw() {
-  background(255);
+  background(170);
 
   if (mousePressed) {
     for (int i=1; i<5; i++) {
