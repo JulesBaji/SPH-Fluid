@@ -15,7 +15,7 @@ Simulation de fluide 2D par la méthode SPH (Smoothed Particle Hydrodynamics), r
 Processing exige que le dossier porte le nom du sketch : cloner le dépôt dans un dossier `fluid`, ouvrir `fluid.pde` dans [Processing](https://processing.org/) et lancer le sketch.
 
 ```bash
-git clone https://github.com/JulesBaji/fluid.git fluid
+git clone https://github.com/JulesBaji/SPH-Fluid.git fluid
 ```
  Maintenir le clic de la souris ajoute des particules.
 
