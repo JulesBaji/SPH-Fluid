@@ -4,7 +4,7 @@ Simulation de fluide 2D par la méthode SPH (Smoothed Particle Hydrodynamics), r
 
 ![Simulation : le fluide brassé par l'hélice, couleur selon la microrotation des particules](docs/fluide.gif)
 
-*Scène de l'hélice (`model = 3`), 3 097 particules ; la couleur des particules suit leur microrotation.*
+*Scène de l'hélice (`model = 3`), 3 097 particules, après 3 000 pas de simulation : les tourbillons sont installés et la couleur des particules suit leur microrotation.*
 
 ## Ce qui est implémenté
 
