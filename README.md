@@ -2,6 +2,10 @@
 
 Simulation de fluide 2D par la méthode SPH (Smoothed Particle Hydrodynamics), réalisée en Processing (Java) pendant le master Informatique ISICG (Université de Limoges, 2024).
 
+![Simulation : le fluide brassé par l'hélice, couleur selon la microrotation des particules](docs/fluide.gif)
+
+*Scène de l'hélice (`model = 3`), 3 097 particules ; la couleur des particules suit leur microrotation.*
+
 ## Ce qui est implémenté
 
 - SPH de base avec recherche de voisins par **grille**.
